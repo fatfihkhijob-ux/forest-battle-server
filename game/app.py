@@ -3,7 +3,7 @@ import random
 import string
 import pymysql
 from datetime import datetime, timedelta
-from flask import Flask, render_template, request, session, jsonify, send_from_directory
+from flask import Flask, render_template, request, session, jsonify, send_from_directory, Response
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -12,6 +12,24 @@ from config import MYSQL_CONFIG, DB_NAME
 app = Flask(__name__, static_folder="static", template_folder="templates")
 app.config["SECRET_KEY"] = "kids-vs-secret"
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
+
+# 跨域：前端在 forest-battle-server.onrender.com，API 在 forest-backend-xxx.onrender.com，浏览器会先发 OPTIONS，必须返回 CORS 头
+@app.before_request
+def handle_cors_preflight():
+    if request.method == "OPTIONS":
+        r = Response("", status=204)
+        r.headers["Access-Control-Allow-Origin"] = "*"
+        r.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+        r.headers["Access-Control-Allow-Headers"] = "Content-Type"
+        return r
+
+
+@app.after_request
+def add_cors_headers(resp):
+    resp.headers["Access-Control-Allow-Origin"] = "*"
+    resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    resp.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    return resp
 
 
 def get_db():
