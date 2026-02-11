@@ -7,7 +7,10 @@ from flask import Flask, render_template, request, session, jsonify, send_from_d
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from config import MYSQL_CONFIG, DB_NAME, DATABASE_URL
+from config import MYSQL_CONFIG, DB_NAME
+
+# Render 绑定 Postgres 后会注入该环境变量。这里直接读环境变量，避免因 config.py 未同步导致 ImportError
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 app.config["SECRET_KEY"] = "kids-vs-secret"
@@ -733,6 +736,11 @@ def api_register():
         finally:
             conn.close()
     except Exception as e:
+        # 打印完整错误堆栈，便于在 Render Logs 排查 500
+        try:
+            app.logger.exception("api_register failed")
+        except Exception:
+            pass
         err_msg = str(e)
         if "Unknown database" in err_msg or "doesn't exist" in err_msg:
             return jsonify({"error": "数据库未初始化，请在 game 目录运行：python init_db.py"}), 500
@@ -776,6 +784,11 @@ def api_login():
         finally:
             conn.close()
     except Exception as e:
+        # 打印完整错误堆栈，便于在 Render Logs 排查 500
+        try:
+            app.logger.exception("api_login failed")
+        except Exception:
+            pass
         err_msg = str(e)
         if "Unknown database" in err_msg or "doesn't exist" in err_msg:
             return jsonify({"error": "数据库未初始化，请在 game 目录运行：python init_db.py"}), 500
