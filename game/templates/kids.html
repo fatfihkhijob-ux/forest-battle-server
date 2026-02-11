@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>儿童开智小游戏</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='kids.css') }}">
+  <meta name="color-scheme" content="light dark">
+  <noscript>
+    <style>#app { display: block !important; } #app .auth-landing-panel { background: rgba(255,255,255,0.95); padding: 24px; }</style>
+  </noscript>
+ </head>
+<body>
+  <!-- 森林广播站：顶部温馨提示跑马灯，每 3–5 分钟随机一条 -->
+  <div id="forest-broadcast" class="forest-broadcast" aria-live="polite" aria-hidden="true">
+    <span class="forest-broadcast-icon" aria-hidden="true">🐿️</span>
+    <span class="forest-broadcast-text" id="forestBroadcastText"></span>
+  </div>
+  <!-- 动态森林环境：天气遮罩(昼夜黄昏) + 云、叶、蝴蝶、草坪植物、夜间萤火虫 -->
+  <div class="env-layer" aria-hidden="true" id="envLayer">
+    <div class="weather-overlay" id="weatherOverlay"></div>
+    <div class="fireflies" id="fireflies" aria-hidden="true"></div>
+    <div class="cloud cloud-1 env-click-cloud" data-cloud="1" aria-hidden="true"></div>
+    <div class="cloud cloud-2 env-click-cloud" data-cloud="2" aria-hidden="true"></div>
+    <div class="cloud cloud-3 env-click-cloud" data-cloud="3" aria-hidden="true"></div>
+    <div class="cloud cloud-4 env-click-cloud" data-cloud="4" aria-hidden="true"></div>
+    <div class="cloud cloud-5 env-click-cloud" data-cloud="5" aria-hidden="true"></div>
+    <div class="leaf leaf-1">🍃</div>
+    <div class="leaf leaf-2">🍂</div>
+    <div class="leaf leaf-3">🌿</div>
+    <div class="butterfly butterfly-1">🦋</div>
+    <div class="butterfly butterfly-2">🦋</div>
+    <div class="butterfly butterfly-3">🦋</div>
+    <!-- 草坪区：小草、花、蘑菇 -->
+    <div class="env-plant env-grass env-plant-1" aria-hidden="true">🌾</div>
+    <div class="env-plant env-grass env-plant-2" aria-hidden="true">🌿</div>
+    <div class="env-plant env-flower env-plant-3" aria-hidden="true">🌸</div>
+    <div class="env-plant env-flower env-plant-4" aria-hidden="true">🌷</div>
+    <div class="env-plant env-mushroom env-plant-5" aria-hidden="true">🍄</div>
+    <div class="env-plant env-grass env-plant-6" aria-hidden="true">🌾</div>
+    <div class="env-plant env-flower env-plant-7" aria-hidden="true">🌼</div>
+    <div class="env-plant env-mushroom env-plant-8" aria-hidden="true">🍄</div>
+    <!-- 夜晚灯笼容器：state-night 时由 JS 动态填充 -->
+    <div id="lanterns-container" class="lanterns-container" aria-hidden="true"></div>
+    <!-- 灯笼周围微微飞舞的萤火虫粒子（仅夜间） -->
+    <div id="lantern-fireflies" class="lantern-fireflies" aria-hidden="true"></div>
+    <!-- 视差云层：远景大而淡慢速、近景小而实快速 -->
+    <div class="cloud-layer cloud-layer-far" aria-hidden="true">
+      <div class="cloud-parallax cloud-far-1"></div>
+      <div class="cloud-parallax cloud-far-2"></div>
+    </div>
+    <div class="cloud-layer cloud-layer-near" aria-hidden="true">
+      <div class="cloud-parallax cloud-near-1"></div>
+      <div class="cloud-parallax cloud-near-2"></div>
+    </div>
+    <!-- 晨曦光斑：左上角斜射阳光 -->
+    <div class="god-rays" id="godRays" aria-hidden="true"></div>
+  </div>
+  <!-- 可点击区域：仅首页显示，大树(落叶)、草坪(花晃动)、天空(云朵亮晶晶) -->
+  <div class="env-tree-zone" id="envTreeZone" aria-hidden="true" title="点一点"></div>
+  <div class="env-lawn-zone" id="envLawnZone" aria-hidden="true" title="点一点"></div>
+  <div class="env-sky-zone" id="envSkyZone" aria-hidden="true" title="点一点"></div>
+  <!-- 视差前景：大叶子/藤蔓，增加纵深感 -->
+  <div class="parallax-foreground" id="parallaxForeground" aria-hidden="true">
+    <span class="parallax-leaf parallax-leaf-l">🌿</span>
+    <span class="parallax-leaf parallax-leaf-r">🍃</span>
+    <span class="parallax-vine parallax-vine-l">🌱</span>
+    <span class="parallax-vine parallax-vine-r">🌱</span>
+  </div>
+  <!-- 环境细节层：地面植被、前景草叶、树洞小兔、视差云、光斑 -->
+  <div class="environment-decor" id="environmentDecor" aria-hidden="true">
+    <div class="ground-vegetation">
+      <div class="grass-group grass-group-1"><span class="grass grass-a">🌾</span><span class="grass grass-b">🌿</span><span class="mushroom">🍄</span></div>
+      <div class="grass-group grass-group-2"><span class="grass grass-a">🌿</span><span class="grass grass-b">🌾</span></div>
+      <div class="grass-group grass-group-3"><span class="grass grass-a">🌾</span><span class="mushroom">🍄</span></div>
+      <div class="grass-group grass-group-4"><span class="grass grass-a">🌿</span><span class="grass grass-b">🌾</span><span class="mushroom">🍄</span></div>
+      <div class="grass-group grass-group-5"><span class="grass grass-a">🌾</span><span class="grass grass-b">🌿</span></div>
+    </div>
+    <div class="foreground-grass" aria-hidden="true">
+      <span class="fg-blade fg-blade-1">🌾</span><span class="fg-blade fg-blade-2">🌿</span><span class="fg-blade fg-blade-3">🌾</span><span class="fg-blade fg-blade-4">🌿</span><span class="fg-blade fg-blade-5">🌾</span>
+    </div>
+    <div class="tree-hole-wrap" id="treeHoleWrap" aria-hidden="true">
+      <span class="tree-hole">🕳️</span>
+      <span class="rabbit-peek" id="rabbitPeek" aria-hidden="true">🐰</span>
+    </div>
+    <div class="squirrel-flash" id="squirrelFlash" aria-hidden="true">🐿️</div>
+  </div>
+  <main id="app" class="app" aria-label="儿童开智小游戏">
+    <div class="page-fullscreen page-root">
+      <div class="fullscreen-bg fullscreen-bg--main" aria-hidden="true"></div>
+      <div class="screen auth-landing">
+        <div class="auth-landing-panel">
+          <h1 class="auth-landing-title">儿童开智小游戏</h1>
+          <p class="auth-landing-sub">选一个身份开始玩吧</p>
+          <p class="auth-landing-hint">登录后即可玩顺序记忆、图形挑战、颜色找找等游戏</p>
+          <div class="auth-cards">
+            <button type="button" class="auth-card auth-card--register jelly-card jelly-yellow btn-pulse" data-action="show-register">
+              <span class="auth-card-icon">🆕</span>
+              <span class="auth-card-text">我是新朋友（注册）</span>
+            </button>
+            <button type="button" class="auth-card auth-card--login jelly-card jelly-blue btn-pulse" data-action="show-login">
+              <span class="auth-card-icon">👋</span>
+              <span class="auth-card-text">老朋友请进（登录）</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 森林之王通关：全屏彩虹弧，仅 .rainbow-active 时显示 -->
+  <div id="rainbow-overlay" class="rainbow-overlay" aria-hidden="true"></div>
+
+  <!-- 固定向导角色「小皮」：左下角，气泡显示提示文字，播放音效时律动 -->
+  <div id="guide-character" class="guide-character xiaopi-idle" aria-label="小皮">
+    <div class="guide-bubble" id="guide-bubble" aria-live="polite"></div>
+    <div class="guide-avatar-wrap">
+      <span class="guide-confused-mark" id="guide-confused-mark" aria-hidden="true">?</span>
+      <button type="button" class="guide-avatar" id="guide-avatar" aria-label="点击小皮">🦊<span class="guide-avatar-sunglasses" aria-hidden="true"></span></button>
+    </div>
+  </div>
+
+  <!-- 连击显示：3 连击以上在屏幕侧边显示，颜色/抖动随连击数变化 -->
+  <div id="combo-display" class="combo-display" aria-live="polite" aria-hidden="true"></div>
+
+  <!-- 背景音乐：森林系轻音乐；狂热模式时切换至动感 EDM -->
+  <audio id="bgm" loop preload="auto" aria-label="背景音乐">
+    <source src="https://www.chosic.com/wp-content/uploads/2021/04/Funny-Puppy.mp3" type="audio/mpeg">
+  </audio>
+  <audio id="bgm-fever" loop preload="auto" aria-label="狂热模式背景音乐">
+    <source src="https://www.fesliyanstudios.com/play-mp3/612" type="audio/mpeg">
+  </audio>
+
+  <!-- 宠物家园商店：金币买领结、果树 -->
+  <div id="shopModal" class="room-modal" aria-hidden="true" role="dialog">
+    <div class="room-modal-overlay"></div>
+    <div class="room-modal-box shop-box">
+      <p class="room-modal-title">宠物商店</p>
+      <p class="shop-coins">金币：<span id="shopCoins">0</span></p>
+      <div class="shop-list" id="shopList"></div>
+      <button type="button" class="room-modal-btn leaderboard-close" id="shopClose">我知道了</button>
+    </div>
+  </div>
+
+  <!-- 勋章馆弹窗：森林守护者等级 + 已解锁勋章 -->
+  <div id="achievementsModal" class="room-modal" aria-hidden="true" role="dialog">
+    <div class="room-modal-overlay"></div>
+    <div class="room-modal-box achievements-box">
+      <p class="room-modal-title">森林守护者</p>
+      <p class="achievements-level" id="achievementsLevel">森林见习生</p>
+      <p class="achievements-wins" id="achievementsWins">胜场：0</p>
+      <div class="achievements-medals" id="achievementsMedals"></div>
+      <button type="button" class="room-modal-btn leaderboard-close" id="achievementsClose">我知道了</button>
+    </div>
+  </div>
+
+  <!-- 森林荣誉榜：首页入口，第一名皇冠+彩色名字 -->
+  <div id="honorBoardModal" class="room-modal" aria-hidden="true" role="dialog">
+    <div class="room-modal-overlay"></div>
+    <div class="room-modal-box leaderboard-box honor-board-box">
+      <p class="room-modal-title">森林荣誉榜</p>
+      <div class="leaderboard-list honor-list" id="honorBoardList"></div>
+      <button type="button" class="room-modal-btn leaderboard-close" id="honorBoardClose">我知道了</button>
+    </div>
+  </div>
+
+  <!-- 排行榜弹窗 -->
+  <div id="leaderboardModal" class="room-modal" aria-hidden="true" role="dialog">
+    <div class="room-modal-overlay"></div>
+    <div class="room-modal-box leaderboard-box">
+      <p class="room-modal-title">胜场排行榜</p>
+      <div class="leaderboard-list" id="leaderboardList"></div>
+      <button type="button" class="room-modal-btn leaderboard-close" id="leaderboardClose">我知道了</button>
+    </div>
+  </div>
+
+  <!-- 森林英雄榜：连击热度前 5 + 你（YOU）高亮 -->
+  <div id="heroLeaderboardModal" class="room-modal" aria-hidden="true" role="dialog">
+    <div class="room-modal-overlay"></div>
+    <div class="room-modal-box leaderboard-box hero-leaderboard-box">
+      <p class="room-modal-title">森林英雄榜</p>
+      <div class="hero-leaderboard-list" id="heroLeaderboardList"></div>
+      <button type="button" class="room-modal-btn leaderboard-close" id="heroLeaderboardClose">我知道了</button>
+    </div>
+  </div>
+
+  <!-- 森林周刊：报纸质感 + 森林邮政邮戳 + 本周战报 / 荣誉墙 / 能力雷达 -->
+  <div id="weeklyJournalModal" class="room-modal weekly-journal-modal" aria-hidden="true" role="dialog">
+    <div class="room-modal-overlay"></div>
+    <div class="room-modal-box weekly-journal-box">
+      <span class="weekly-journal-stamp" aria-hidden="true">森林邮政</span>
+      <p class="room-modal-title weekly-journal-title">森林周刊</p>
+      <p class="weekly-journal-subtitle" id="weeklyJournalSubtitle">上周 · 荣誉回顾</p>
+      <div class="weekly-journal-content" id="weeklyJournalContent">
+        <p class="weekly-journal-loading" id="weeklyJournalLoading">加载中…</p>
+      </div>
+      <button type="button" class="room-modal-btn leaderboard-close" id="weeklyJournalClose">我知道了</button>
+    </div>
+  </div>
+
+  <!-- 冠军特权：上周勤劳榜第一可选全森林灯笼颜色 -->
+  <div id="championLanternModal" class="room-modal champion-lantern-modal" aria-hidden="true" role="dialog">
+    <div class="room-modal-overlay"></div>
+    <div class="room-modal-box champion-lantern-box">
+      <p class="room-modal-title champion-lantern-title">👑 你是上周最勤劳的小松鼠！</p>
+      <p class="champion-lantern-desc">请选出下周全森林灯笼的颜色</p>
+      <div class="champion-lantern-options" id="championLanternOptions"></div>
+    </div>
+  </div>
+
+  <!-- 家长退出二次确认弹窗 -->
+  <div id="logoutConfirmModal" class="room-modal" aria-hidden="true" role="dialog" aria-labelledby="logoutConfirmTitle">
+    <div class="room-modal-overlay"></div>
+    <div class="room-modal-box logout-confirm-box">
+      <p class="room-modal-title" id="logoutConfirmTitle">确认退出？</p>
+      <p class="logout-confirm-msg">退出后需要重新登录才能再玩哦</p>
+      <div class="logout-confirm-btns">
+        <button type="button" class="logout-confirm-btn logout-confirm-cancel" id="logoutConfirmCancel">取消</button>
+        <button type="button" class="logout-confirm-btn logout-confirm-ok" id="logoutConfirmOk">确认退出</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 自定义房间号弹窗：创建成功后居中显示，磨砂玻璃+彩色边框+超大房间号 -->
+  <div id="roomCreatedModal" class="room-modal" aria-hidden="true" role="dialog" aria-labelledby="roomModalTitle" aria-modal="true">
+    <div class="room-modal-overlay"></div>
+    <div class="room-modal-box">
+      <p class="room-modal-title" id="roomModalTitle">房间已创建！</p>
+      <p class="room-modal-code" id="roomModalCode">------</p>
+      <p class="room-modal-hint">请把房间号告诉对方</p>
+      <button type="button" class="room-modal-btn" id="roomModalConfirm">我知道了</button>
+    </div>
+  </div>
+
+  <!-- 首页：全屏背景 main_bg + 居中磨砂玻璃卡片 -->
+  <template id="tpl-auth-landing">
+    <div class="page-fullscreen page-root">
+      <div class="fullscreen-bg fullscreen-bg--main" aria-hidden="true"></div>
+      <div class="screen auth-landing">
+      <div class="auth-landing-panel">
+        <h1 class="auth-landing-title">儿童开智小游戏</h1>
+        <p class="auth-landing-sub">选一个身份开始玩吧</p>
+        <p class="auth-landing-hint">登录后即可玩顺序记忆、图形挑战、颜色找找等游戏</p>
+        <div class="auth-cards">
+          <button type="button" class="auth-card auth-card--register jelly-card jelly-yellow btn-pulse" data-action="show-register">
+            <span class="auth-card-icon">🆕</span>
+            <span class="auth-card-text">我是新朋友（注册）</span>
+          </button>
+          <button type="button" class="auth-card auth-card--login jelly-card jelly-blue btn-pulse" data-action="show-login">
+            <span class="auth-card-icon">👋</span>
+            <span class="auth-card-text">老朋友请进（登录）</span>
+          </button>
+        </div>
+      </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- Login：全屏背景 main_bg + 居中登录框 -->
+  <template id="tpl-login">
+    <div class="page-fullscreen page-root">
+      <div class="fullscreen-bg fullscreen-bg--main" aria-hidden="true"></div>
+      <div class="screen auth-screen">
+      <div class="auth-box">
+        <h1 class="auth-title">老朋友请进</h1>
+        <p class="auth-subtitle">输入账号密码登录</p>
+        <form class="auth-form" id="loginForm">
+          <div class="auth-field">
+            <input type="text" name="username" class="auth-input" placeholder="用户名" autocomplete="username">
+            <span class="auth-validation" id="loginUsernameErr" aria-live="polite"></span>
+          </div>
+          <div class="auth-field">
+            <input type="password" name="password" class="auth-input" placeholder="密码" autocomplete="current-password">
+            <span class="auth-validation" id="loginPasswordErr" aria-live="polite"></span>
+          </div>
+          <p class="auth-msg" id="loginMsg"></p>
+          <button type="submit" class="btn-auth jelly-btn jelly-blue">登录</button>
+        </form>
+        <p class="auth-switch"><a href="#" data-action="show-landing">返回</a></p>
+      </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- Register：全屏背景 main_bg + 居中注册框 -->
+  <template id="tpl-register">
+    <div class="page-fullscreen page-root">
+      <div class="fullscreen-bg fullscreen-bg--main" aria-hidden="true"></div>
+      <div class="screen auth-screen">
+      <div class="auth-box">
+        <h1 class="auth-title">我是新朋友</h1>
+        <p class="auth-subtitle">填一下就能开始玩</p>
+        <form class="auth-form" id="registerForm">
+          <div class="auth-field">
+            <input type="text" name="username" class="auth-input" placeholder="用户名（至少2个字符）" autocomplete="username">
+            <span class="auth-validation" id="regUsernameErr" aria-live="polite"></span>
+          </div>
+          <div class="auth-field">
+            <input type="password" name="password" class="auth-input" placeholder="密码（至少4个字符）" autocomplete="new-password">
+            <span class="auth-validation" id="regPasswordErr" aria-live="polite"></span>
+          </div>
+          <div class="auth-field">
+            <input type="password" name="password2" class="auth-input" placeholder="再次输入密码" autocomplete="new-password">
+            <span class="auth-validation" id="regPassword2Err" aria-live="polite"></span>
+          </div>
+          <p class="auth-msg" id="registerMsg"></p>
+          <button type="submit" class="btn-auth jelly-btn jelly-yellow">注册</button>
+        </form>
+        <p class="auth-switch"><a href="#" data-action="show-landing">返回</a></p>
+      </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- Home：选关页，全屏背景 + 欢迎区 + 字号切换 + 家长退出二次确认；首次点击遮罩激活 BGM -->
+  <template id="tpl-home">
+    <div class="page-fullscreen page-root page-home">
+      <div class="home-bg-shapes" aria-hidden="true"></div>
+      <div class="fullscreen-bg fullscreen-bg--forest" aria-hidden="true"></div>
+      <div class="screen screen-with-header home-screen-inner" id="homeScreenInner">
+      <header class="home-header home-header--main">
+        <div class="home-welcome-wrap">
+          <span class="home-welcome-emoji" aria-hidden="true">👋</span>
+          <span class="home-welcome-text">欢迎，</span>
+          <span class="home-user-name" id="homeUserName">用户</span>
+        </div>
+        <div class="home-header-actions">
+          <button type="button" class="btn-bgm" id="btnBgm" aria-label="背景音乐" title="背景音乐">🎵</button>
+          <a href="/parent" class="parent-link" aria-label="家长护航">🏠 家长中心</a>
+          <div class="home-font-toggle" role="group" aria-label="字号大小">
+            <button type="button" class="font-size-btn" data-size="small" aria-label="小字" title="小字">A</button>
+            <button type="button" class="font-size-btn font-size-btn--active" data-size="medium" aria-label="中字" title="中字">A</button>
+            <button type="button" class="font-size-btn" data-size="large" aria-label="大字" title="大字">A</button>
+          </div>
+          <button type="button" class="btn-logout btn-logout--parent" data-action="logout" aria-label="家长退出登录">
+            <span class="btn-logout-ico" aria-hidden="true">🚪</span>
+            <span class="btn-logout-text">家长退出</span>
+          </button>
+        </div>
+      </header>
+      <div class="home-menu-bar-wrap">
+        <span class="home-vine home-vine-left" aria-hidden="true">🌿</span>
+        <span class="home-vine home-vine-right" aria-hidden="true">🌿</span>
+        <div class="home home-menu home-menu--cards">
+        <button type="button" class="menu-item" data-nav="seq" aria-label="顺序记忆"><span class="menu-icon" aria-hidden="true">🐱</span><span class="menu-label">顺序记忆</span></button>
+        <button type="button" class="menu-item" data-nav="shape" aria-label="图形挑战"><span class="menu-icon" aria-hidden="true">🎨</span><span class="menu-label">图形挑战</span></button>
+        <button type="button" class="menu-item" data-nav="color" aria-label="颜色找找"><span class="menu-icon" aria-hidden="true">🌈</span><span class="menu-label">颜色找找</span></button>
+        <button type="button" class="menu-item" data-nav="shadow" aria-label="影子对对碰"><span class="menu-icon" aria-hidden="true">🦋</span><span class="menu-label">影子对对碰</span></button>
+        <button type="button" class="menu-item" data-nav="versus" aria-label="双人对战"><span class="menu-icon" aria-hidden="true">⚔️</span><span class="menu-label">双人对战</span></button>
+        <a href="/achievements" class="menu-item menu-item-link" aria-label="勋章馆"><span class="menu-icon" aria-hidden="true">🏅</span><span class="menu-label">勋章馆</span></a>
+        <button type="button" class="menu-item" data-action="show-honor-board" aria-label="森林荣誉榜"><span class="menu-icon" aria-hidden="true">👑</span><span class="menu-label">森林荣誉榜</span></button>
+        <button type="button" class="menu-item" data-action="show-hero-leaderboard" aria-label="森林英雄榜"><span class="menu-icon" aria-hidden="true">🔥</span><span class="menu-label">森林英雄榜</span></button>
+        <button type="button" class="menu-item" data-action="show-weekly-journal" aria-label="森林周刊"><span class="menu-icon" aria-hidden="true">🗞️</span><span class="menu-label">森林周刊</span></button>
+        <button type="button" class="menu-item" data-nav="collection" aria-label="我的家园"><span class="menu-icon" aria-hidden="true">🏠</span><span class="menu-label">我的家园</span></button>
+      </div>
+      </div>
+      <div class="bgm-start-overlay" id="bgmStartOverlay" aria-label="点击开始探索">
+        <p class="bgm-start-hint">点击任意处开始探索</p>
+      </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- 我的家园：全屏背景 home_bg + 画布 + 贴纸仓库 -->
+  <template id="tpl-collection">
+    <div class="page-fullscreen page-root">
+      <div class="fullscreen-bg fullscreen-bg--home" aria-hidden="true"></div>
+      <div class="screen home-screen" id="garden-canvas">
+      <header class="home-header home-header-bar">
+        <span class="home-user">我的家园</span>
+        <button type="button" class="btn-shop" data-action="open-shop" aria-label="商店" title="用金币买装饰">🪙 <span id="homeCoins">0</span></button>
+        <button type="button" class="btn-versus back" data-action="collection-back" aria-label="返回"><span class="btn-ico">🏠</span> 返回</button>
+      </header>
+      <div class="home-canvas" id="homeCanvas"></div>
+      <div class="home-warehouse-wrap" id="homeWarehouseWrap">
+        <p class="home-warehouse-hint">从下面选贴纸，拖到上面装饰吧</p>
+        <div class="home-warehouse" id="homeWarehouse"></div>
+      </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- 顺序记忆：选关卡（宽屏横向，动物头像 🐱🐶🐰🦊） -->
+  <template id="tpl-seq-levels">
+    <div class="page-fullscreen page-root">
+      <div class="screen screen-with-header levels-screen">
+        <header class="home-header">
+          <span class="home-user">顺序记忆</span>
+          <button type="button" class="btn-versus back" data-action="seq-levels-back" aria-label="返回"><span class="btn-ico">🏠</span> 返回</button>
+        </header>
+        <div class="levels-panel">
+          <h2 class="levels-title">选关卡</h2>
+          <p class="levels-desc">选一个小动物，记住它亮起的顺序吧</p>
+          <div class="levels-container" id="seqLevelsGrid">
+            <button type="button" class="level-item level-unlocked" data-level="1" aria-label="第1关 小猫"><span class="level-icon" aria-hidden="true">🐱</span><span class="level-label">第1关</span></button>
+            <button type="button" class="level-item level-unlocked" data-level="2" aria-label="第2关 小狗"><span class="level-icon" aria-hidden="true">🐶</span><span class="level-label">第2关</span></button>
+            <button type="button" class="level-item level-unlocked" data-level="3" aria-label="第3关 兔子"><span class="level-icon" aria-hidden="true">🐰</span><span class="level-label">第3关</span></button>
+            <button type="button" class="level-item level-unlocked" data-level="4" aria-label="第4关 狐狸"><span class="level-icon" aria-hidden="true">🦊</span><span class="level-label">第4关</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- 获胜礼花 + 你真棒 / 获得新贴纸（覆盖层） -->
+  <template id="tpl-win-celebration">
+    <div class="screen win-celebration" id="winCelebration">
+      <div class="win-celebration-content">
+        <p class="win-emoji" id="winEmoji">👏</p>
+        <p class="win-text" id="winText">你真棒</p>
+        <p class="win-sub" id="winSub"></p>
+      </div>
+      <div class="confetti-wrap" id="confettiWrap"></div>
+    </div>
+  </template>
+
+  <!-- Versus: create or join（图标化：➕创建 🚪加入 📊排行榜 🏠返回） -->
+  <template id="tpl-versus-menu">
+    <div class="screen">
+      <div class="center">
+        <h2 class="versus-title">联机对战</h2>
+        <p class="versus-desc">两人在不同设备上玩，先完成顺序记忆者获胜</p>
+        <p class="versus-hint" id="versusFindPartnerHint">需要两位小朋友同时点击哦</p>
+        <button type="button" class="jelly-button btn-find-partner" data-action="find-partner" title="寻找伙伴"><span class="btn-ico">🔍</span> 寻找伙伴</button>
+        <button type="button" class="jelly-button btn-create" data-action="create-room" title="创建房间"><span class="btn-ico">➕</span> 创建房间</button>
+        <button type="button" class="jelly-button btn-join" data-action="join-room" title="加入房间"><span class="btn-ico">🚪</span> 加入房间</button>
+        <button type="button" class="jelly-button btn-leaderboard" data-action="show-leaderboard" title="排行榜"><span class="btn-ico">📊</span> 排行榜</button>
+        <button type="button" class="btn-versus back" data-action="vs-back" title="返回"><span class="btn-ico">🏠</span> 返回</button>
+      </div>
+    </div>
+  </template>
+
+  <!-- Versus: create room (show code, wait，房主/对手名与森林之王标识) -->
+  <template id="tpl-versus-create">
+    <div class="screen">
+      <div class="center">
+        <h2 class="versus-title">房间已创建</h2>
+        <p class="room-code-label">房间号（让对方输入）：</p>
+        <p class="room-code" id="versusRoomCode">------</p>
+        <div class="versus-wait-players" id="versusWaitPlayers">
+          <p class="versus-player-line" id="versusHostLine">房主： <span id="versusHostName" class="versus-name">--</span></p>
+          <p class="versus-player-line" id="versusJoinerLine">对手： <span id="versusJoinerName" class="versus-name">等待中</span></p>
+        </div>
+        <p class="versus-wait" id="versusWaitText">等待对手加入…</p>
+        <button class="btn-versus start-hidden" id="versusStartBtn" data-action="vs-start">开始游戏</button>
+        <button class="btn-versus back" data-action="vs-leave">离开房间</button>
+      </div>
+    </div>
+  </template>
+
+  <!-- Versus: join room (input code) -->
+  <template id="tpl-versus-join">
+    <div class="screen">
+      <div class="center">
+        <h2 class="versus-title">加入房间</h2>
+        <input type="text" class="room-code-input" id="versusJoinCode" maxlength="6" placeholder="输入6位房间号" autocomplete="off">
+        <button class="btn-versus" data-action="vs-do-join">加入</button>
+        <p class="versus-msg" id="versusJoinMsg"></p>
+        <button class="btn-versus back" data-action="vs-back">返回</button>
+      </div>
+    </div>
+  </template>
+
+  <!-- Versus: result（共同守护森林 + 击掌；不显示“你输了”） -->
+  <template id="tpl-versus-result">
+    <div class="screen versus-result-screen" id="versusResultScreen">
+      <div class="versus-result-lose-overlay" id="versusResultLoseOverlay" aria-hidden="true"></div>
+      <div class="center versus-result-coop">
+        <p class="versus-result-highfive" id="versusResultHighfive" aria-hidden="true">🙌</p>
+        <p class="versus-result-icon" id="versusResultIcon">👑</p>
+        <h2 class="versus-result-title" id="versusResultText">冠军</h2>
+        <p class="versus-result-coop-msg" id="versusResultCoopMsg"></p>
+        <p class="versus-result-time" id="versusResultTime"></p>
+        <button class="btn-versus" data-action="vs-result-home"><span class="btn-ico">🏠</span> 返回首页</button>
+      </div>
+    </div>
+  </template>
+
+  <!-- 心情打卡：游戏结束后超大表情，孩子点开心/不开心 -->
+  <template id="tpl-mood">
+    <div class="screen mood-overlay">
+      <div class="mood-box">
+        <p class="mood-prompt">玩得开心吗？</p>
+        <div class="mood-buttons">
+          <button type="button" class="mood-btn mood-happy" data-mood="happy" aria-label="开心">😊</button>
+          <button type="button" class="mood-btn mood-sad" data-mood="sad" aria-label="不开心">😢</button>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- Demo / Start：顺序记忆示范，全屏背景 game_bg -->
+  <template id="tpl-demo">
+    <div class="page-fullscreen page-root">
+      <div id="game-wrapper" class="fullscreen-bg fullscreen-bg--game game-screen-bg" aria-hidden="true"></div>
+      <div class="screen game-screen">
+      <div class="game-screen-content">
+        <div class="demo-stage" id="demoStage"></div>
+        <button class="big-btn big-btn-play" data-action="start" aria-label="开始">
+          <svg viewBox="0 0 100 100" class="icon" aria-hidden="true">
+            <polygon points="40,30 78,50 40,70" class="icon-fill"></polygon>
+          </svg>
+        </button>
+      </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- Game：顺序记忆游戏，全屏背景 game_bg -->
+  <template id="tpl-game">
+    <div class="page-fullscreen page-root">
+      <div id="game-wrapper" class="fullscreen-bg fullscreen-bg--game game-screen-bg" aria-hidden="true"></div>
+      <div class="screen game-screen">
+      <div class="game-screen-content">
+        <div class="game-stage" id="gameStage"></div>
+      </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- End -->
+  <template id="tpl-end">
+    <div class="screen">
+      <div class="center">
+        <button class="big-btn" data-action="home" aria-label="返回">
+          <svg viewBox="0 0 100 100" class="icon" aria-hidden="true">
+            <path d="M50 22 L20 48 H30 V78 H44 V60 H56 V78 H70 V48 H80 Z" class="icon-fill"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </template>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="{{ url_for('static', filename='kids.js') }}"></script>
+</body>
+</html>
+

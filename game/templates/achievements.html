@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>勋章馆 - 儿童开智小游戏</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='kids.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='achievements.css') }}">
+  <meta name="color-scheme" content="light dark">
+</head>
+<body class="achievements-page">
+  <div class="ach-header">
+    <a href="/" class="ach-back">← 返回森林（首页）</a>
+    <h1 class="ach-title">勋章馆</h1>
+  </div>
+  <div class="ach-panel glass-panel">
+    <p class="ach-desc">收集勋章，成为森林里最棒的小勇士！</p>
+    <div class="ach-grid" id="achGrid"></div>
+  </div>
+  <div id="achDetailModal" class="ach-modal" aria-hidden="true">
+    <div class="ach-modal-overlay"></div>
+    <div class="ach-modal-box">
+      <p class="ach-modal-rarity" id="achDetailRarity"></p>
+      <p class="ach-modal-date" id="achDetailDate"></p>
+      <p class="ach-modal-msg" id="achDetailMsg"></p>
+      <button type="button" class="ach-modal-btn" id="achDetailClose">知道了</button>
+    </div>
+  </div>
+  <script>
+    (function() {
+      const grid = document.getElementById("achGrid");
+      const modal = document.getElementById("achDetailModal");
+      const rarityEl = document.getElementById("achDetailRarity");
+      const dateEl = document.getElementById("achDetailDate");
+      const msgEl = document.getElementById("achDetailMsg");
+      const closeBtn = document.getElementById("achDetailClose");
+      const medalList = [
+        { key: "first_single", name: "初出茅庐", emoji: "🏅", rarity: "普通", effect: "" },
+        { key: "vs_3_wins", name: "对战先锋", emoji: "🏆", rarity: "普通", effect: "" },
+        { key: "play_50", name: "百折不挠", emoji: "🎖️", rarity: "普通", effect: "" },
+        { key: "seq_master", name: "记忆小能手", emoji: "🌟", rarity: "普通", effect: "" },
+        { key: "vs_master", name: "对战达人", emoji: "💎", rarity: "普通", effect: "" },
+        { key: "forest_regular", name: "森林常客", emoji: "👑", rarity: "普通", effect: "" },
+        { key: "forest_warlord", name: "森林战神", emoji: "🔥", rarity: "传说", effect: "flame" },
+        { key: "lightning_reflex", name: "闪电快手", emoji: "⚡", rarity: "传说", effect: "lightning" },
+        { key: "king_of_jungle", name: "森林之王", emoji: "👑", rarity: "传说", effect: "sparkle" },
+      ];
+      let unlockedMap = {};
+      fetch("/api/achievements", { credentials: "same-origin" })
+        .then(function(r) {
+          if (r.status === 401) { window.location.href = "/"; return; }
+          return r.json();
+        })
+        .then(function(data) {
+          if (!data) return;
+          const list = (data.medal_list && data.medal_list.length) ? data.medal_list : medalList;
+          const medals = data.medals || [];
+          medals.forEach(function(m) { unlockedMap[m.key] = m.unlocked_at || ""; });
+          grid.innerHTML = list.map(function(m) {
+            const key = m.key;
+            const unlocked = unlockedMap[key];
+            const isUnlocked = !!unlocked;
+            const dateStr = unlocked ? String(unlocked).slice(0, 10) : "";
+            const rarity = m.rarity || "普通";
+            const effect = m.effect || "";
+            const epicClass = effect ? " ach-slot-epic medal-epic ach-slot-" + effect : "";
+            return (
+              '<button type="button" class="ach-slot ' + (isUnlocked ? "ach-slot-unlocked" : "ach-slot-locked") + epicClass + '" data-key="' + key + '" data-date="' + dateStr + '" data-name="' + (m.name || key) + '" data-rarity="' + rarity + '">' +
+                '<span class="ach-slot-circle">' +
+                  '<span class="ach-slot-emoji">' + (m.emoji || "🏅") + '</span>' +
+                  (isUnlocked ? '<span class="ach-slot-glow"></span>' : '') +
+                  (isUnlocked && effect ? '<span class="ach-slot-epic-effect ach-epic-' + effect + '"></span>' : '') +
+                '</span>' +
+                '<span class="ach-slot-name">' + (m.name || key) + '</span>' +
+              '</button>'
+            );
+          }).join("");
+          grid.querySelectorAll(".ach-slot").forEach(function(btn) {
+            btn.addEventListener("click", function() {
+              const date = btn.dataset.date;
+              const name = btn.dataset.name;
+              const rarity = btn.dataset.rarity || "普通";
+              if (rarityEl) rarityEl.textContent = "稀有度：" + rarity;
+              if (dateEl) dateEl.textContent = date ? "达成日期：" + date : "";
+              if (btn.classList.contains("ach-slot-unlocked") && date) {
+                if (msgEl) msgEl.textContent = "恭喜！你在 " + date + " 获得了「" + name + "」这个荣誉，你是最棒的！";
+              } else if (btn.classList.contains("ach-slot-locked")) {
+                if (msgEl) msgEl.textContent = "继续加油！完成对应挑战即可解锁「" + name + "」。";
+              }
+              modal.setAttribute("aria-hidden", "false");
+              modal.classList.add("ach-modal-open");
+            });
+          });
+        })
+        .catch(function() {
+          grid.innerHTML = "<p class=\"ach-empty\">请先<a href=\"/\">登录</a>查看勋章</p>";
+        });
+      closeBtn.addEventListener("click", function() {
+        modal.classList.remove("ach-modal-open");
+        modal.setAttribute("aria-hidden", "true");
+      });
+    })();
+  </script>
+</body>
+</html>

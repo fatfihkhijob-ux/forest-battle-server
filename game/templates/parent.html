@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>成长简报 - 家长护航</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --paper: #f5f6e9;
+      --paper-dark: #e8ead5;
+      --ink: #2c3e2c;
+      --accent: #4a7c4a;
+      --gold: #b8860b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+      background: linear-gradient(180deg, #e0e8d0 0%, #f0f2e4 100%);
+      min-height: 100vh;
+      color: var(--ink);
+    }
+    .parent-page {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 20px 16px 40px;
+      background: var(--paper);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      min-height: 100vh;
+    }
+    .parent-title {
+      text-align: center;
+      font-size: 1.6rem;
+      color: var(--accent);
+      margin: 0 0 24px;
+      border-bottom: 2px solid var(--paper-dark);
+      padding-bottom: 12px;
+    }
+    .parent-loading, .parent-err {
+      text-align: center;
+      padding: 40px 20px;
+      color: #666;
+    }
+    .parent-err { color: #c0392b; }
+    .report-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      border: 1px solid var(--paper-dark);
+    }
+    .report-summary {
+      font-size: 1.05rem;
+      line-height: 1.6;
+      margin: 0 0 12px;
+    }
+    .report-meta {
+      font-size: 0.9rem;
+      color: #666;
+      margin: 0;
+    }
+    .report-section {
+      margin: 24px 0;
+    }
+    .report-section h2 {
+      font-size: 1.1rem;
+      color: var(--accent);
+      margin: 0 0 12px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--paper-dark);
+    }
+    .stats-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .stat-item {
+      flex: 1 1 140px;
+      background: var(--paper-dark);
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+    }
+    .stat-item .label { font-size: 0.85rem; color: #666; margin-bottom: 4px; }
+    .stat-item .value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .stat-item .value.count-up { font-variant-numeric: tabular-nums; }
+    .radar-wrap {
+      height: 260px;
+      margin: 12px 0;
+      border-radius: 16px;
+      overflow: hidden;
+      background: linear-gradient(180deg, rgba(212, 229, 201, 0.4) 0%, rgba(245, 246, 233, 0.6) 100%);
+      padding: 12px;
+    }
+    .chart-wrap {
+      height: 200px;
+      margin: 12px 0;
+      border-radius: 16px;
+      overflow: hidden;
+      background: linear-gradient(180deg, rgba(212, 229, 201, 0.35) 0%, rgba(245, 246, 233, 0.5) 100%);
+      padding: 12px;
+    }
+    .expert-comment {
+      background: linear-gradient(135deg, #fff9e6 0%, #fffbf0 100%);
+      border-left: 4px solid var(--gold);
+      padding: 14px 16px;
+      border-radius: 0 10px 10px 0;
+      margin: 16px 0;
+      font-size: 0.98rem;
+      line-height: 1.6;
+    }
+    .mentor-advice-wrap {
+      margin: 24px 0;
+      animation: mentor-float-in 0.8s ease-out both;
+    }
+    .mentor-advice-wrap .report-card { margin-bottom: 0; }
+    .mentor-bubble {
+      background: linear-gradient(145deg, #fffde7 0%, #fff9c4 100%);
+      border-radius: 16px;
+      padding: 16px 20px 16px 56px;
+      position: relative;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      border: 1px solid rgba(255, 193, 7, 0.35);
+    }
+    .mentor-bubble .mentor-emoji {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 28px;
+      line-height: 1;
+    }
+    .mentor-bubble .mentor-text {
+      font-size: 0.98rem;
+      line-height: 1.65;
+      color: #5d4e37;
+      margin: 0;
+    }
+    @keyframes mentor-float-in {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .footprints-title { font-size: 1rem; color: var(--accent); margin: 16px 0 8px; }
+    .footprint-list { list-style: none; padding: 0; margin: 0; font-size: 0.9rem; color: #666; }
+    .footprint-list li { padding: 4px 0; }
+    .parent-back {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 10px 20px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+    }
+    .btn-share {
+      display: inline-block;
+      margin-top: 12px;
+      margin-right: 12px;
+      padding: 12px 24px;
+      background: var(--gold);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    .btn-share:active { opacity: 0.9; }
+    #reportArea.poster-mode .btn-share,
+    #reportArea.poster-mode .parent-back { display: none; }
+  </style>
+</head>
+<body>
+  <div class="parent-page">
+    <h1 class="parent-title">成长简报</h1>
+    <div id="reportArea">
+      <p class="parent-loading">加载中…</p>
+    </div>
+    <a href="/" class="parent-back">返回首页</a>
+  </div>
+  <script>
+(function() {
+  var area = document.getElementById("reportArea");
+
+  function getUserId() {
+    var params = new URLSearchParams(window.location.search);
+    var q = params.get("user_id");
+    if (q && /^\d+$/.test(q)) return q;
+    try {
+      var raw = localStorage.getItem("user");
+      if (raw) {
+        var u = JSON.parse(raw);
+        if (u && u.user_id) return String(u.user_id);
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  function animateValue(el, end, duration, suffix) {
+    suffix = suffix || "";
+    var start = 0;
+    var startTime = null;
+    function step(t) {
+      if (!startTime) startTime = t;
+      var progress = Math.min((t - startTime) / duration, 1);
+      var ease = 1 - Math.pow(1 - progress, 2);
+      var current = Math.round(start + (end - start) * ease);
+      el.textContent = String(current) + suffix;
+      if (progress < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  function buildExpertComment(data) {
+    var parts = [];
+    var mem = data.memory_peak || 0;
+    var vsTotal = data.versus_total || 0;
+    var vsWins = data.versus_wins || 0;
+    var rate = data.versus_win_rate || 0;
+    if (mem >= 8) parts.push("宝贝的短时记忆能力超过 90% 的同龄人！");
+    else if (mem >= 5) parts.push("宝贝的记忆力正在稳步提升，很棒！");
+    if (vsWins > 10) parts.push("由于宝贝在对战中表现出的果敢，专家建议继续强化逻辑思维！");
+    else if (vsTotal >= 3 && rate >= 50) parts.push("宝贝是一个勇敢的森林社交家！");
+    if (data.total_minutes_all >= 60) parts.push("专注时长说明宝贝很有耐力，继续保持哦！");
+    if (parts.length === 0) parts.push("每天一点小进步，就是最棒的成长！");
+    return parts.join(" ");
+  }
+
+  function buildMentorAdvice(data) {
+    var mem = data.memory_peak || 0;
+    var memScore = Math.min(100, mem * 10);
+    var vsTotal = data.versus_total || 0;
+    var rate = parseFloat(data.versus_win_rate) || 0;
+    var totalMin = data.total_minutes_all || 0;
+    var emoji = "\uD83E\uDD89";
+    var text = "";
+    if (memScore < 50 && mem < 6) {
+      text = "宝贝在短时记忆上还有潜力可挖！建议多玩「顺序记忆」来锻炼脑力。";
+      emoji = "\uD83E\uDD89";
+    } else if (vsTotal >= 2 && rate >= 70) {
+      text = "宝贝已经是社交小达人了！建议挑战「图形挑战」提升空间逻辑。";
+      emoji = "\uD83D\uDC18";
+    } else if (totalMin < 20) {
+      text = "坚持就是胜利！每天再多玩 5 分钟，就能解锁更多勋章哦！";
+      emoji = "\uD83E\uDD89";
+    } else if (mem >= 6 && totalMin >= 30) {
+      text = "宝贝表现很均衡，可以试试「双人对战」和更多小伙伴一起玩！";
+      emoji = "\uD83D\uDC18";
+    } else {
+      text = "每天一点小进步，多玩「顺序记忆」和「颜色找找」会越来越棒！";
+      emoji = "\uD83E\uDD89";
+    }
+    return { text: text, emoji: emoji };
+  }
+
+  function renderReport(data) {
+    window.__reportData = data;
+    var labels = ["记忆力", "反应力", "耐力"];
+    var memScore = Math.min(100, (data.memory_peak || 0) * 10);
+    var reactScore = Math.min(100, (data.versus_win_rate || 0) * 1.2);
+    var staminaScore = Math.min(100, Math.floor((data.total_minutes_all || 0) / 2));
+    var radarData = [memScore, reactScore, staminaScore];
+
+    var html = '<div class="report-card">';
+    html += '<p class="report-summary">' + (data.summary || "") + '</p>';
+    html += '<p class="report-meta">日期：' + (data.date || "") + ' · 今日游戏 <span class="value count-up" data-end="' + (data.total_minutes || 0) + '" data-suffix=" 分钟">0 分钟</span> · 心情' + (data.mood_text || "") + '</p>';
+    html += '</div>';
+
+    html += '<div class="report-section report-card"><h2>核心能力</h2>';
+    html += '<div class="radar-wrap"><canvas id="radarChart"></canvas></div>';
+    html += '<div class="stats-row">';
+    html += '<div class="stat-item"><div class="label">累计专注时长</div><div class="value count-up" data-end="' + (data.total_minutes_all || 0) + '" data-suffix=" 分钟">0 分钟</div></div>';
+    html += '<div class="stat-item"><div class="label">记忆力峰值</div><div class="value count-up" data-end="' + (data.memory_peak || 0) + '" data-suffix=" 格">0 格</div></div>';
+    html += '<div class="stat-item"><div class="label">对战胜率</div><div class="value count-up" data-end="' + Math.round(parseFloat(data.versus_win_rate) || 0) + '" data-suffix="%">0%</div></div>';
+    html += '<div class="stat-item"><div class="label">获得勋章</div><div class="value count-up" data-end="' + (data.badges_count || 0) + '" data-suffix=" 枚">0 枚</div></div>';
+    html += '</div></div>';
+
+    html += '<div class="report-section report-card"><h2>近期进步</h2>';
+    html += '<div class="chart-wrap"><canvas id="trendChart"></canvas></div></div>';
+
+    html += '<div class="report-section report-card"><h2>专家点评</h2>';
+    html += '<p class="expert-comment" id="expertComment">' + buildExpertComment(data) + '</p></div>';
+
+    if (data.locations && data.locations.length > 0) {
+      html += '<div class="report-section report-card"><h2 class="footprints-title">今日成长足迹</h2><ul class="footprint-list">';
+      data.locations.forEach(function(loc) {
+        html += '<li><time>' + (loc.created_at || "") + '</time> 纬度 ' + loc.lat + '，经度 ' + loc.lng + '</li>';
+      });
+      html += '</ul></div>';
+    } else {
+      html += '<p class="report-meta" style="padding:0 20px">今日暂无位置记录</p>';
+    }
+
+    var mentor = buildMentorAdvice(data);
+    html += '<div class="report-section mentor-advice-wrap"><div class="report-card"><h2>森林导师建议</h2>';
+    html += '<div class="mentor-bubble"><span class="mentor-emoji" aria-hidden="true">' + mentor.emoji + '</span><p class="mentor-text">' + mentor.text + '</p></div></div></div>';
+
+    html += '<button type="button" class="btn-share" id="btnShare">生成分享海报</button>';
+    area.innerHTML = html;
+
+    var duration = 1200;
+    area.querySelectorAll(".value.count-up[data-end]").forEach(function(el) {
+      var end = parseInt(el.getAttribute("data-end"), 10) || 0;
+      var suffix = el.getAttribute("data-suffix") || "";
+      el.textContent = "0" + suffix;
+      animateValue(el, end, duration, suffix);
+    });
+
+    var radarCtx = document.getElementById("radarChart").getContext("2d");
+    new Chart(radarCtx, {
+      type: "radar",
+      data: {
+        labels: labels,
+        datasets: [{
+          label: "能力值",
+          data: radarData,
+          fill: true,
+          backgroundColor: "rgba(163, 190, 140, 0.38)",
+          borderColor: "rgba(122, 155, 118, 0.9)",
+          borderWidth: 2,
+          pointBackgroundColor: "#c5d9b8",
+          pointBorderColor: "#fff",
+          pointBorderWidth: 1.5,
+          pointRadius: 5,
+          pointHoverRadius: 6,
+        }]
+      },
+      options: {
+        scales: {
+          r: {
+            min: 0,
+            max: 100,
+            grid: { color: "rgba(139, 169, 135, 0.25)" },
+            angleLines: { color: "rgba(139, 169, 135, 0.2)" },
+            pointLabels: { color: "#4a5d47", font: { size: 12 } },
+            ticks: { display: false }
+          }
+        },
+        plugins: { legend: { display: false } }
+      }
+    });
+
+    var last7 = data.last_7_days || [];
+    var dates = last7.map(function(d) { return d.date.slice(5); });
+    var mins = last7.map(function(d) { return d.minutes; });
+    var trendCtx = document.getElementById("trendChart").getContext("2d");
+    new Chart(trendCtx, {
+      type: "line",
+      data: {
+        labels: dates.length ? dates : ["近7日"],
+        datasets: [{
+          label: "每日游戏(分钟)",
+          data: mins.length ? mins : [0],
+          fill: true,
+          backgroundColor: "rgba(184, 212, 168, 0.45)",
+          borderColor: "rgba(122, 155, 118, 0.85)",
+          borderWidth: 2,
+          tension: 0.4,
+          pointBackgroundColor: "#a8c69f",
+          pointBorderColor: "#fff",
+          pointBorderWidth: 1.5,
+          pointRadius: 5,
+          pointHoverRadius: 6,
+        }]
+      },
+      options: {
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { stepSize: 1, color: "#5a6b58" },
+            grid: { color: "rgba(139, 169, 135, 0.18)" }
+          },
+          x: {
+            ticks: { color: "#5a6b58", maxRotation: 0 },
+            grid: { color: "rgba(139, 169, 135, 0.12)" }
+          }
+        },
+        plugins: { legend: { display: false } }
+      }
+    });
+
+    var btnShare = document.getElementById("btnShare");
+    if (btnShare) {
+      btnShare.addEventListener("click", function() { generatePoster(data); });
+    }
+  }
+
+  function generatePoster(data) {
+    if (typeof html2canvas === "undefined") {
+      alert("正在加载截图库，请稍后再试");
+      return;
+    }
+    var radarEl = document.getElementById("radarChart");
+    var radarDataUrl = radarEl ? radarEl.toDataURL("image/png") : "";
+    var mentor = buildMentorAdvice(data);
+    var expertText = buildExpertComment(data);
+    var homeUrl = window.location.origin + "/";
+    var d = window.__reportData || data;
+
+    var wrap = document.createElement("div");
+    wrap.id = "poster-container";
+    wrap.style.cssText = "position:fixed;left:-9999px;top:0;width:375px;background:linear-gradient(180deg,#f5f6e9 0%,#e8ead5 100%);border:12px solid #7a9b76;border-radius:24px;padding:20px;box-sizing:border-box;";
+    wrap.innerHTML =
+      '<div style="text-align:center;margin-bottom:12px;"><h2 style="margin:0;font-size:1.35rem;color:#4a7c4a;">成长简报</h2><p style="margin:6px 0 0;font-size:0.85rem;color:#666;">' + (d.date || "") + '</p></div>' +
+      (radarDataUrl ? '<div style="text-align:center;margin:12px 0;background:rgba(212,229,201,0.4);border-radius:16px;padding:12px;"><img src="' + radarDataUrl + '" alt="" style="max-width:100%;height:auto;display:block;margin:0 auto;" /></div>' : '') +
+      '<div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:12px 0;">' +
+      '<div style="flex:1 1 70px;text-align:center;background:#e8ead5;border-radius:10px;padding:10px;"><div style="font-size:0.75rem;color:#666;">专注时长</div><div style="font-size:1.2rem;font-weight:700;color:#4a7c4a;">' + (d.total_minutes_all || 0) + ' 分钟</div></div>' +
+      '<div style="flex:1 1 70px;text-align:center;background:#e8ead5;border-radius:10px;padding:10px;"><div style="font-size:0.75rem;color:#666;">记忆力峰值</div><div style="font-size:1.2rem;font-weight:700;color:#4a7c4a;">' + (d.memory_peak || 0) + ' 格</div></div>' +
+      '<div style="flex:1 1 70px;text-align:center;background:#e8ead5;border-radius:10px;padding:10px;"><div style="font-size:0.75rem;color:#666;">对战胜率</div><div style="font-size:1.2rem;font-weight:700;color:#4a7c4a;">' + (Math.round(parseFloat(d.versus_win_rate) || 0) + "%") + '</div></div>' +
+      '<div style="flex:1 1 70px;text-align:center;background:#e8ead5;border-radius:10px;padding:10px;"><div style="font-size:0.75rem;color:#666;">获得勋章</div><div style="font-size:1.2rem;font-weight:700;color:#4a7c4a;">' + (d.badges_count || 0) + ' 枚</div></div>' +
+      '</div>' +
+      '<div style="background:linear-gradient(145deg,#fffde7 0%,#fff9c4 100%);border-radius:12px;padding:12px;margin:12px 0;border-left:4px solid #b8860b;"><p style="margin:0;font-size:0.9rem;line-height:1.5;color:#5d4e37;">' + expertText + '</p></div>' +
+      '<div style="background:linear-gradient(145deg,#fffde7 0%,#fff9c4 100%);border-radius:12px;padding:12px 12px 12px 48px;position:relative;margin:12px 0;"><span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:24px;">' + mentor.emoji + '</span><p style="margin:0;font-size:0.9rem;line-height:1.5;color:#5d4e37;">' + mentor.text + '</p></div>' +
+      '<div style="text-align:center;margin-top:20px;padding-top:16px;border-top:2px dashed rgba(122,155,118,0.4);"><p style="margin:0 0 12px;font-size:0.95rem;color:#2c3e2c;font-weight:600;">我的宝贝正在【森林益智园】挑战脑力，快来一起玩吧！</p><div id="poster-qr" style="display:inline-block;width:80px;height:80px;"></div></div>';
+    document.body.appendChild(wrap);
+
+    function captureAndClean() {
+      html2canvas(wrap, { scale: 2, useCORS: true, backgroundColor: "#f5f6e9", logging: false }).then(function(canvas) {
+        if (wrap.parentNode) wrap.parentNode.removeChild(wrap);
+        var dataUrl = canvas.toDataURL("image/png");
+        var link = document.createElement("a");
+        link.download = "森林益智园-成长简报.png";
+        link.href = dataUrl;
+        link.click();
+        try { window.open(dataUrl); } catch (_) {}
+      }).catch(function() {
+        if (wrap.parentNode) wrap.parentNode.removeChild(wrap);
+        alert("生成失败，请重试");
+      });
+    }
+
+    if (typeof QRCode !== "undefined") {
+      try {
+        var qrDiv = document.getElementById("poster-qr");
+        if (qrDiv) {
+          qrDiv.innerHTML = "";
+          new QRCode(qrDiv, { text: homeUrl, width: 80, height: 80 });
+          setTimeout(captureAndClean, 400);
+        } else {
+          captureAndClean();
+        }
+      } catch (_) {
+        captureAndClean();
+      }
+    } else {
+      setTimeout(captureAndClean, 100);
+    }
+  }
+
+  var uid = getUserId();
+  var url = "/api/parent/report?date=" + (new Date().toISOString().slice(0, 10));
+  if (uid) url += "&user_id=" + uid;
+
+  fetch(url, { credentials: "same-origin" })
+    .then(function(r) {
+      if (!r.ok) return r.json().then(function(j) { throw new Error(j.error || "未登录"); });
+      return r.json();
+    })
+    .then(renderReport)
+    .catch(function(err) {
+      area.innerHTML = '<p class="parent-err">' + (err.message || "请先登录后查看，或从儿童端点击「成长简报」进入。") + '</p>';
+    });
+})();
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" crossorigin="anonymous"></script>
+</body>
+</html>

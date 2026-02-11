@@ -1,0 +1,308 @@
+/* 勋章馆独立页：与全局设计令牌一致，大圆角 + 毛玻璃 + 卡片化 */
+.achievements-page {
+  min-height: 100vh;
+  padding: 20px;
+  padding-top: 56px;
+  font-family: var(--font-family);
+  letter-spacing: var(--letter-spacing);
+  line-height: var(--line-height);
+}
+.ach-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+}
+.ach-back {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #1e3a5f;
+  text-decoration: none;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.6);
+  transition: background 0.2s, transform 0.2s;
+}
+.ach-back:hover {
+  background: rgba(255, 255, 255, 0.9);
+  transform: scale(1.02);
+}
+.ach-title {
+  margin: 0;
+  font-size: clamp(1.35rem, 3.5vw, 1.75rem);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #1e3a5f;
+}
+.ach-panel {
+  max-width: 540px;
+  margin: 0 auto;
+  padding: 28px 24px;
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.32);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.25s ease;
+}
+.ach-panel:hover {
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.12);
+}
+.ach-desc {
+  margin: 0 0 24px;
+  font-size: 1rem;
+  color: #64748b;
+  text-align: center;
+  line-height: var(--line-height);
+}
+.ach-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  justify-items: center;
+}
+@media (min-width: 420px) {
+  .ach-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+.ach-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 14px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s, box-shadow 0.2s;
+}
+.ach-slot:hover {
+  background: rgba(255, 255, 255, 0.35);
+  transform: scale(1.05);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+.ach-slot-circle {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(165deg, rgba(255,248,220,0.95) 0%, rgba(255,235,180,0.9) 100%);
+  border: 4px solid #d4a84b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 2px 10px rgba(255,255,255,0.8), 0 4px 16px rgba(0,0,0,0.12);
+}
+.ach-slot-emoji {
+  font-size: 2.5rem;
+  line-height: 1;
+  position: relative;
+  z-index: 1;
+}
+.ach-slot-locked .ach-slot-emoji {
+  filter: grayscale(1);
+  opacity: 0.7;
+}
+.ach-slot-locked .ach-slot-circle {
+  border-color: #94a3b8;
+  background: linear-gradient(165deg, rgba(220,220,220,0.9) 0%, rgba(200,200,200,0.85) 100%);
+}
+.ach-slot-glow {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  border-top-color: rgba(255, 193, 7, 0.9);
+  border-right-color: rgba(255, 235, 59, 0.6);
+  border-bottom-color: rgba(255, 193, 7, 0.9);
+  border-left-color: rgba(255, 235, 59, 0.6);
+  animation: ach-glow-rotate 3s linear infinite;
+  pointer-events: none;
+}
+@keyframes ach-glow-rotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 限定传说勋章：稀有类名 .medal-epic / .ach-slot-epic + 三种特效（旋转光芒 / 火焰 / 电流 / 粒子） */
+.ach-slot-epic.ach-slot-unlocked .ach-slot-circle,
+.medal-epic.ach-slot-unlocked .ach-slot-circle {
+  border-width: 5px;
+  box-shadow: inset 0 2px 10px rgba(255,255,255,0.9), 0 6px 24px rgba(0,0,0,0.2);
+}
+.ach-slot-epic-effect {
+  position: absolute;
+  inset: -12px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+}
+/* 森林战神：流动红色火焰 + 旋转光芒 */
+.ach-epic-flame {
+  background: conic-gradient(from 0deg, #ff4444, #ff6b35, #f7931e, #ff4444, #ff6b35);
+  animation: ach-flame-flow 2.5s ease-in-out infinite;
+  opacity: 0.88;
+  filter: blur(10px);
+}
+@keyframes ach-flame-flow {
+  0% { transform: rotate(0deg); filter: blur(10px); opacity: 0.88; }
+  50% { transform: rotate(180deg); filter: blur(12px); opacity: 0.95; }
+  100% { transform: rotate(360deg); filter: blur(10px); opacity: 0.88; }
+}
+/* 闪电快手：勋章边缘微小的紫色电流划过 */
+.ach-epic-lightning {
+  border: 2px solid transparent;
+  background: linear-gradient(90deg, transparent 0%, rgba(138, 43, 226, 0.85) 25%, rgba(218, 112, 214, 0.95) 50%, rgba(138, 43, 226, 0.85) 75%, transparent 100%);
+  background-size: 250% 100%;
+  animation: ach-lightning-sweep 2s ease-in-out infinite;
+  opacity: 0.9;
+  box-shadow: 0 0 12px rgba(138, 43, 226, 0.4);
+}
+@keyframes ach-lightning-sweep {
+  0% { background-position: 200% 0; box-shadow: 0 0 8px rgba(138, 43, 226, 0.3); }
+  45% { background-position: -200% 0; box-shadow: 0 0 16px rgba(218, 112, 214, 0.5); }
+  50% { background-position: -200% 0; box-shadow: 0 0 20px rgba(138, 43, 226, 0.6); }
+  95% { background-position: 200% 0; box-shadow: 0 0 10px rgba(138, 43, 226, 0.35); }
+  100% { background-position: 200% 0; box-shadow: 0 0 8px rgba(138, 43, 226, 0.3); }
+}
+/* 森林之王：金色粒子散发 + 旋转光芒 */
+.ach-epic-sparkle {
+  background: radial-gradient(circle at 30% 30%, rgba(255,215,0,0.65) 0%, transparent 38%),
+              radial-gradient(circle at 70% 70%, rgba(255,235,59,0.55) 0%, transparent 38%),
+              radial-gradient(circle at 50% 50%, rgba(255,193,7,0.35) 0%, transparent 55%);
+  animation: ach-sparkle-pulse 2.2s ease-in-out infinite;
+}
+@keyframes ach-sparkle-pulse {
+  0%, 100% { transform: scale(1) rotate(0deg); opacity: 0.82; }
+  50% { transform: scale(1.12) rotate(5deg); opacity: 1; }
+}
+.ach-slot-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #1e3a5f;
+  text-align: center;
+}
+.ach-slot-locked .ach-slot-name {
+  color: #94a3b8;
+}
+.ach-empty {
+  text-align: center;
+  color: #64748b;
+  padding: 32px 24px;
+  margin: 0;
+  font-size: 1rem;
+  line-height: var(--line-height);
+}
+.ach-empty::before {
+  content: "🏆";
+  display: block;
+  font-size: 3.5rem;
+  margin-bottom: 16px;
+  opacity: 0.9;
+}
+.ach-empty a {
+  color: #7FAF9A;
+  font-weight: 600;
+  text-decoration: none;
+}
+.ach-empty a:hover { text-decoration: underline; }
+.ach-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  pointer-events: none;
+  visibility: hidden;
+  opacity: 0;
+  transition: visibility 0.25s, opacity 0.25s;
+}
+.ach-modal-open {
+  pointer-events: auto;
+  visibility: visible;
+  opacity: 1;
+}
+.ach-modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+}
+.ach-modal-box {
+  position: relative;
+  max-width: 320px;
+  width: 100%;
+  padding: 24px 20px;
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(16px);
+  border: 4px solid #FFB347;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
+}
+.ach-modal-rarity {
+  margin: 0 0 4px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #b8860b;
+  text-align: center;
+}
+.ach-modal-date {
+  margin: 0 0 12px;
+  font-size: 0.85rem;
+  color: #64748b;
+  text-align: center;
+}
+.ach-modal-msg {
+  margin: 0 0 20px;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #1e3a5f;
+  text-align: center;
+}
+.ach-modal-btn {
+  display: block;
+  margin: 0 auto;
+  padding: 12px 28px;
+  border-radius: 24px;
+  border: none;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1e3a5f;
+  background: linear-gradient(180deg, #fff9b0 0%, #FFE066 100%);
+  box-shadow: 0 4px 0 #d4a82b;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.ach-modal-btn:hover {
+  transform: scale(1.05);
+}
+.ach-modal-btn:active {
+  transform: scale(0.98);
+  box-shadow: 0 2px 0 #d4a82b;
+}
+
+@media (max-width: 480px) {
+  .achievements-page { padding: 16px; padding-top: 52px; }
+  .ach-panel { padding: 20px 16px; }
+  .ach-slot { padding: 14px 10px; }
+  .ach-slot-circle { width: 72px; height: 72px; }
+  .ach-slot-emoji { font-size: 2.2rem; }
+  .ach-slot-name { font-size: 0.85rem; }
+  .ach-modal-box { max-width: 92vw; padding: 20px 16px; }
+}

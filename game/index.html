@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>联网对战（轻松模式）</title>
+    <style>
+      :root {
+        --bg: #0b1020;
+        --card: rgba(255, 255, 255, 0.06);
+        --text: rgba(255, 255, 255, 0.92);
+        --muted: rgba(255, 255, 255, 0.65);
+        --good: #40ffb0;
+        --warm: #ffd36a;
+        --line: rgba(255, 255, 255, 0.12);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, "Segoe UI", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+        background: radial-gradient(1200px 700px at 30% 10%, #1b2a70 0%, transparent 60%),
+          radial-gradient(900px 500px at 80% 0%, #2b6a4f 0%, transparent 55%),
+          var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 20px;
+      }
+      .wrap {
+        width: min(980px, 100%);
+        display: grid;
+        gap: 14px;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 16px;
+        backdrop-filter: blur(8px);
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+      @media (max-width: 860px) {
+        .row {
+          grid-template-columns: 1fr;
+        }
+      }
+      h1 {
+        font-size: 20px;
+        margin: 0 0 8px;
+        letter-spacing: 0.2px;
+      }
+      .sub {
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      button {
+        appearance: none;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--text);
+        padding: 10px 12px;
+        border-radius: 12px;
+        cursor: pointer;
+        font-weight: 650;
+      }
+      button:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+      .btns {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .bar {
+        height: 14px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid var(--line);
+        overflow: hidden;
+      }
+      .bar > div {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, rgba(64, 255, 176, 0.9), rgba(255, 211, 106, 0.95));
+        transition: width 180ms ease-out;
+      }
+      .label {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        color: var(--muted);
+        font-size: 12px;
+        margin: 8px 0 6px;
+      }
+      .countdown {
+        font-size: 44px;
+        font-weight: 900;
+        letter-spacing: 1px;
+        text-align: center;
+        padding: 10px 0;
+      }
+      .tip {
+        margin-top: 10px;
+        border: 1px dashed rgba(255, 211, 106, 0.35);
+        background: rgba(255, 211, 106, 0.08);
+        padding: 10px 12px;
+        border-radius: 12px;
+        color: rgba(255, 255, 255, 0.86);
+        font-size: 13px;
+      }
+      .cheer {
+        position: relative;
+        border-color: rgba(255, 211, 106, 0.55) !important;
+        box-shadow: 0 0 0 4px rgba(255, 211, 106, 0.12), 0 0 24px rgba(255, 211, 106, 0.18);
+      }
+      .cheer::after {
+        content: "小皮加油！你做得很棒～";
+        position: absolute;
+        right: 12px;
+        top: 12px;
+        padding: 6px 10px;
+        font-size: 12px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 211, 106, 0.45);
+        background: rgba(255, 211, 106, 0.12);
+        color: rgba(255, 255, 255, 0.92);
+        animation: pop 700ms ease-out;
+      }
+      @keyframes pop {
+        from {
+          transform: translateY(-6px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0px);
+          opacity: 1;
+        }
+      }
+      .tiny {
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 8px;
+        line-height: 1.5;
+      }
+      /* 右上角连接指示灯 */
+      .conn-indicator {
+        position: fixed;
+        top: 14px;
+        right: 18px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.7);
+        pointer-events: none;
+        user-select: none;
+      }
+      .conn-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        background: rgba(255, 255, 255, 0.25);
+        box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.1);
+        transition: background 150ms ease-out, box-shadow 150ms ease-out;
+      }
+      .conn-dot.conn-ok {
+        background: #40ffb0;
+        box-shadow: 0 0 0 4px rgba(64, 255, 176, 0.16);
+      }
+      .conn-dot.conn-warn {
+        background: #ffb840;
+        box-shadow: 0 0 0 4px rgba(255, 184, 64, 0.16);
+      }
+      .conn-dot.conn-bad {
+        background: rgba(150, 150, 150, 0.6);
+        box-shadow: none;
+      }
+      /* Render 唤醒时的暖心遮罩层 */
+      .wake-overlay {
+        position: fixed;
+        inset: 0;
+        background: radial-gradient(circle at 20% 0%, rgba(255, 211, 106, 0.18), transparent 60%),
+          rgba(5, 10, 25, 0.82);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 220ms ease-out;
+        z-index: 20;
+      }
+      .wake-overlay.visible {
+        opacity: 1;
+        pointer-events: auto;
+      }
+      .wake-card {
+        width: min(320px, 88vw);
+        background: rgba(15, 24, 52, 0.94);
+        border-radius: 20px;
+        padding: 18px 18px 16px;
+        border: 1px solid rgba(255, 211, 106, 0.4);
+        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+        color: rgba(255, 255, 255, 0.9);
+        text-align: center;
+      }
+      .wake-title {
+        font-size: 16px;
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+      .wake-text {
+        font-size: 13px;
+        line-height: 1.6;
+        color: var(--muted);
+        margin-bottom: 12px;
+      }
+      .wake-spinner {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        border: 3px solid rgba(255, 255, 255, 0.12);
+        border-top-color: rgba(255, 211, 106, 0.9);
+        margin: 0 auto 4px;
+        animation: spin 900ms linear infinite;
+      }
+      .wake-foot {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.6);
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 右上角连接指示灯：灰=单机/未连，黄=重连中，绿=已连上森林服务器 -->
+    <div class="conn-indicator">
+      <div id="connDot" class="conn-dot conn-bad"></div>
+      <span>森林连接</span>
+    </div>
+
+    <div class="wrap">
+      <div class="card" id="topCard">
+        <h1>联网对战（轻松开心版）</h1>
+        <div class="sub">
+          不展示“谁领先/谁落后”，只做可爱的同步效果。若伙伴进度明显更快，会自动给你加上“加油光晕”，让每个小朋友都开心完成。
+        </div>
+        <div class="btns">
+          <button id="btnJoin">联网对战</button>
+          <button id="btnLeave" disabled>退出匹配</button>
+          <button id="btnReady" disabled>我准备好了</button>
+        </div>
+        <div style="margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap">
+          <span class="pill" id="connPill">连接中…</span>
+          <span class="pill" id="roomPill">房间：未加入</span>
+          <span class="pill" id="statePill">状态：空闲</span>
+        </div>
+        <div class="tip" id="tipBox" style="display: none"></div>
+      </div>
+
+      <div class="row">
+        <div class="card" id="selfCard">
+          <h1 style="margin-bottom: 0">我自己</h1>
+          <div class="label">
+            <span>我的进度</span>
+            <span id="selfText">0</span>
+          </div>
+          <div class="bar"><div id="selfBar"></div></div>
+          <div class="btns" style="margin-top: 12px">
+            <button id="btnCorrect" disabled>答对 +1</button>
+            <button id="btnCombo" disabled>Combo +1</button>
+          </div>
+          <div class="tiny">提示：这里用按钮模拟“答对/连击”，接入你真实游戏逻辑时，把 emit 放到你原来的得分/Combo 增长处即可。</div>
+        </div>
+
+        <div class="card" id="oppCard">
+          <h1 style="margin-bottom: 0">伙伴</h1>
+          <div class="label">
+            <span>伙伴进度</span>
+            <span id="oppText">0</span>
+          </div>
+          <div class="bar"><div id="oppBar"></div></div>
+          <div class="countdown" id="countdown">—</div>
+          <div class="tiny">倒计时会在两个人都“准备好”后统一开始（3-2-1）。</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Render 免费版“唤醒中”暖心遮罩层 -->
+    <div id="wakeOverlay" class="wake-overlay">
+      <div class="wake-card">
+        <div class="wake-spinner"></div>
+        <div class="wake-title">小皮正在打扫森林房间</div>
+        <div class="wake-text">
+          可能是森林服务器刚刚睡醒，请稍等大约 30 秒哦～<br />等小皮把房间收拾干净，就可以开始对战啦！
+        </div>
+        <div class="wake-foot">如果一直没有消失，可以稍后再试一次。</div>
+      </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/game.js"></script>
+  </body>
+</html>
+
