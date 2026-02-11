@@ -1,0 +1,6 @@
+flask==3.0.2
+flask-socketio==5.3.6
+python-socketio==5.11.0
+eventlet==0.35.2
+PyMySQL==1.1.0
+cryptography>=41.0.0
