@@ -7,7 +7,7 @@ from flask import Flask, render_template, request, session, jsonify, send_from_d
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from config import MYSQL_CONFIG, DB_NAME
+from config import MYSQL_CONFIG, DB_NAME, DATABASE_URL
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 app.config["SECRET_KEY"] = "kids-vs-secret"
@@ -33,7 +33,26 @@ def add_cors_headers(resp):
 
 
 def get_db():
-    """获取 MySQL 连接（kids_game 库）。"""
+    """获取数据库连接。有 DATABASE_URL 时用 PostgreSQL（Render），否则用 MySQL（本地）。"""
+    if DATABASE_URL:
+        import psycopg2
+        from psycopg2.extras import RealDictCursor
+        # Render 的 PostgreSQL 用 postgres:// 开头，部分驱动需要 postgresql://
+        url = DATABASE_URL
+        if url.startswith("postgres://"):
+            url = "postgresql://" + url[9:]
+        conn = psycopg2.connect(url)
+        # 包装成 .cursor() 返回 dict 游标，与 pymysql DictCursor 行为一致
+        class DictCursorConn:
+            def __init__(self, c):
+                self._conn = c
+            def cursor(self):
+                return self._conn.cursor(cursor_factory=RealDictCursor)
+            def commit(self):
+                return self._conn.commit()
+            def close(self):
+                return self._conn.close()
+        return DictCursorConn(conn)
     return pymysql.connect(
         host=MYSQL_CONFIG["host"],
         port=MYSQL_CONFIG["port"],
@@ -65,7 +84,9 @@ def make_room_code_6():
 
 
 def ensure_game_rooms_table():
-    """若 game_rooms 表不存在则创建，解决 1146 报错。"""
+    """若 game_rooms 表不存在则创建，解决 1146 报错。PostgreSQL 表由 init_db_postgres.py 一次性创建。"""
+    if DATABASE_URL:
+        return
     sql = """
     CREATE TABLE IF NOT EXISTS game_rooms (
         id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -98,7 +119,9 @@ def ensure_game_rooms_table():
 
 
 def ensure_app_settings_table():
-    """全局设置：灯笼颜色、冠军昵称等，供全森林同步。"""
+    """全局设置：灯笼颜色、冠军昵称等，供全森林同步。PostgreSQL 表由 init_db_postgres.py 创建。"""
+    if DATABASE_URL:
+        return
     sql = """
     CREATE TABLE IF NOT EXISTS app_settings (
         k VARCHAR(64) NOT NULL PRIMARY KEY,
@@ -119,7 +142,9 @@ def ensure_app_settings_table():
 
 
 def ensure_achievement_unlocks_table():
-    """勋章馆：记录用户解锁的成就（如勇敢小狮子）。"""
+    """勋章馆：记录用户解锁的成就（如勇敢小狮子）。PostgreSQL 表由 init_db_postgres.py 创建。"""
+    if DATABASE_URL:
+        return
     sql = """
     CREATE TABLE IF NOT EXISTS achievement_unlocks (
         id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -143,7 +168,9 @@ def ensure_achievement_unlocks_table():
 
 
 def ensure_worship_log_table():
-    """膜拜记录：同一房间内每个玩家只能膜拜一次。"""
+    """膜拜记录：同一房间内每个玩家只能膜拜一次。PostgreSQL 表由 init_db_postgres.py 创建。"""
+    if DATABASE_URL:
+        return
     sql = """
     CREATE TABLE IF NOT EXISTS worship_log (
         room_id VARCHAR(6) NOT NULL,
@@ -167,7 +194,9 @@ def ensure_worship_log_table():
 
 
 def ensure_users_likes_received():
-    """users 表增加 likes_received 字段（被膜拜次数）。"""
+    """users 表增加 likes_received 字段（被膜拜次数）。PostgreSQL 在 init_db_postgres 中已包含。"""
+    if DATABASE_URL:
+        return
     try:
         conn = get_db()
         try:
@@ -182,7 +211,9 @@ def ensure_users_likes_received():
 
 
 def ensure_user_wallet_table():
-    """用户金币：每赢一局 +10 金币。"""
+    """用户金币：每赢一局 +10 金币。PostgreSQL 表由 init_db_postgres.py 创建。"""
+    if DATABASE_URL:
+        return
     sql = """
     CREATE TABLE IF NOT EXISTS user_wallet (
         user_id INT UNSIGNED NOT NULL PRIMARY KEY,
@@ -203,7 +234,9 @@ def ensure_user_wallet_table():
 
 
 def ensure_user_inventory_table():
-    """宠物家园装饰：领结、果树等，用金币购买。"""
+    """宠物家园装饰：领结、果树等，用金币购买。PostgreSQL 表由 init_db_postgres.py 创建。"""
+    if DATABASE_URL:
+        return
     sql = """
     CREATE TABLE IF NOT EXISTS user_inventory (
         id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -684,11 +717,18 @@ def api_register():
                 cur.execute("SELECT id FROM users WHERE username = %s", (username,))
                 if cur.fetchone():
                     return jsonify({"error": "该用户名已被注册"}), 400
-                cur.execute(
-                    "INSERT INTO users (username, password_hash, email) VALUES (%s, %s, %s)",
-                    (username, password_hash, email),
-                )
-                user_id = cur.lastrowid
+                if DATABASE_URL:
+                    cur.execute(
+                        "INSERT INTO users (username, password_hash, email) VALUES (%s, %s, %s) RETURNING id",
+                        (username, password_hash, email),
+                    )
+                    user_id = cur.fetchone()["id"]
+                else:
+                    cur.execute(
+                        "INSERT INTO users (username, password_hash, email) VALUES (%s, %s, %s)",
+                        (username, password_hash, email),
+                    )
+                    user_id = cur.lastrowid
             conn.commit()
         finally:
             conn.close()
@@ -697,7 +737,8 @@ def api_register():
         if "Unknown database" in err_msg or "doesn't exist" in err_msg:
             return jsonify({"error": "数据库未初始化，请在 game 目录运行：python init_db.py"}), 500
         if "Connection" in err_msg or "connect" in err_msg.lower():
-            return jsonify({"error": "无法连接 MySQL，请先启动 MySQL 服务"}), 500
+            db_type = "PostgreSQL" if DATABASE_URL else "MySQL"
+            return jsonify({"error": f"无法连接 {db_type}，请检查数据库配置或服务状态"}), 500
         return jsonify({"error": "注册失败：" + err_msg}), 500
     session["user_id"] = user_id
     session["username"] = username
@@ -739,7 +780,8 @@ def api_login():
         if "Unknown database" in err_msg or "doesn't exist" in err_msg:
             return jsonify({"error": "数据库未初始化，请在 game 目录运行：python init_db.py"}), 500
         if "Connection" in err_msg or "connect" in err_msg.lower():
-            return jsonify({"error": "无法连接 MySQL，请先启动 MySQL 服务"}), 500
+            db_type = "PostgreSQL" if DATABASE_URL else "MySQL"
+            return jsonify({"error": f"无法连接 {db_type}，请检查数据库配置或服务状态"}), 500
         return jsonify({"error": "登录失败：" + err_msg}), 500
     session["user_id"] = user_id
     session["username"] = username
