@@ -1,7 +1,7 @@
 (() => {
   const $ = (sel, root = document) => root.querySelector(sel);
   /** 后端 API 根地址（Render 部署的 Flask 服务） */
-  const BACKEND_BASE = "https://forest-backend-ccl7.onrender.com";
+  const BACKEND_BASE = "https://forest-backend-cc l7.onrender.com";
 
   const app = $("#app");
   const tplAuthLanding = $("#tpl-auth-landing");
