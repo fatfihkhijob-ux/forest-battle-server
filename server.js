@@ -42,9 +42,9 @@ const io = new Server(server, {
 
 // 托管 game/ 作为静态资源根目录（路径使用 path.join，跨平台安全）
 const GAME_DIR = path.join(__dirname, "game");
-app.use(express.static(GAME_DIR));
 
-// 首页：完整森林小游戏（kids.html 的纯静态版本）
+// 先注册路由，否则 express.static 会把 / 当成目录并默认返回 index.html（联网对战测试页）
+// 首页：完整游戏，从登录/注册开始
 app.get("/", (_req, res) => {
   res.sendFile(path.join(GAME_DIR, "forest.html"));
 });
@@ -53,6 +53,8 @@ app.get("/", (_req, res) => {
 app.get("/battle", (_req, res) => {
   res.sendFile(path.join(GAME_DIR, "index.html"));
 });
+
+app.use(express.static(GAME_DIR));
 
 // ========== 匹配与房间管理 ==========
 /** @type {string[]} */
