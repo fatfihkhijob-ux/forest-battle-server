@@ -11,7 +11,7 @@ from config import MYSQL_CONFIG, DB_NAME
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 app.config["SECRET_KEY"] = "kids-vs-secret"
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 
 
 def get_db():
